@@ -11,6 +11,27 @@ ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 REFRESH_TOKEN = os.getenv("REFRESH_TOKEN")
 DATABASE_LOCATION = os.getenv("DATABASE_LOCATION")
 
+def check_if_row_exists(conn, weight_log):
+    """
+    Check if row already exists before updating
+    """
+    sql = f'''
+        select 1 from weight
+        where 
+            date = '{weight_log['date']}'
+            and weight = {weight_log['weight']} 
+    '''
+    cur = conn.cursor()
+    print(f'Checking if row for {weight_log["date"]} already exists...')
+
+    cur.execute(sql)
+
+    result = len(cur.fetchall()) >= 1
+    if result:
+        print('The row already exists.')
+
+    return result
+
 def create_db_connection(db):
     """ create a database connection to the SQLite database
         specified by db_file
@@ -71,7 +92,11 @@ def fetch_all_weight_logs():
     today = date.today()
     base_date = today.strftime('%Y-%m-%d')
 
-    headers = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
+    headers = {
+        'Authorization': f'Bearer {ACCESS_TOKEN}',
+        'accept-language': 'en_US'
+    }
+
     url = f'https://api.fitbit.com/1/user/-/body/log/weight/date/{base_date}/30d.json'
 
     r = requests.get(url, headers=headers).json()['weight']
@@ -104,9 +129,33 @@ def save_tokens(t1, t2):
     with open('.env', 'w') as file:
         file.writelines(data)
 
-def save_weight_log(weight_log, db = None):
+def save_weight_log(weight_log, conn):
+    """
+    Save all weight logs into database
+    """
+    # Create a copy to work with
     weight_log = dict(weight_log)
-    print(weight_log)
+
+    # Check if row already exists first
+    if not check_if_row_exists(conn, weight_log):
+    # SQL to work with
+        sql = f'''
+            INSERT INTO weight(date, time, external_id, external_source_name, device_name, weight)
+            VALUES (
+                '{weight_log['date']}', 
+                '{weight_log['time']}',
+                {weight_log['logId']},
+                'Fitbit',
+                '{weight_log['source']}',
+                {weight_log['weight']} 
+            ) 
+        '''
+        cur = c.cursor()
+        cur.execute(sql)
+        c.commit()
+
+        return cur.lastrowid
+    return -1
 
 if __name__ == '__main__':
     # check if existing token is valid
@@ -120,4 +169,6 @@ if __name__ == '__main__':
 
     w = fetch_all_weight_logs()
     for log in w:
-        save_weight_log(log)
+        r = save_weight_log(log, c)
+        if r != -1:
+            print(f'Inserted new row {r}')

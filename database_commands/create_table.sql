@@ -1,5 +1,5 @@
 CREATE TABLE weight (
-    id int primary key NOT NULL,
+    id integer primary key NOT NULL,
     date text not null,
     time text null,
     external_id int null,
