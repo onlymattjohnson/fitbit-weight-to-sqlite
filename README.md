@@ -1,2 +1,4 @@
 # fitbit-weight-to-sqlite
-Extract weight from fitbit and save to sqlite database
+
+> An application to extract weight from fitbit and save to sqlite database
+
