@@ -1,7 +1,7 @@
 from base64 import b64encode
 from datetime import date
 from dotenv import load_dotenv
-import json, os, requests
+import json, os, requests, sqlite3
 
 load_dotenv()
 
@@ -9,6 +9,21 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 REFRESH_TOKEN = os.getenv("REFRESH_TOKEN")
+DATABASE_LOCATION = os.getenv("DATABASE_LOCATION")
+
+def create_db_connection(db):
+    """ create a database connection to the SQLite database
+        specified by db_file
+    :param db_file: database file
+    :return: Connection object or None
+    """
+    conn = None
+    try:
+        conn = sqlite3.connect(db)
+    except Error as e:
+        print(e)
+
+    return conn
 
 def encode_credentials():
     base_string = f'{CLIENT_ID}:{CLIENT_SECRET}'
@@ -59,7 +74,7 @@ def fetch_all_weight_logs():
     headers = {'Authorization': f'Bearer {ACCESS_TOKEN}'}
     url = f'https://api.fitbit.com/1/user/-/body/log/weight/date/{base_date}/30d.json'
 
-    r = requests.get(url, headers=headers).json()
+    r = requests.get(url, headers=headers).json()['weight']
 
     return r
 
@@ -89,6 +104,10 @@ def save_tokens(t1, t2):
     with open('.env', 'w') as file:
         file.writelines(data)
 
+def save_weight_log(weight_log, db = None):
+    weight_log = dict(weight_log)
+    print(weight_log)
+
 if __name__ == '__main__':
     # check if existing token is valid
     if is_token_valid(ACCESS_TOKEN):
@@ -97,5 +116,8 @@ if __name__ == '__main__':
         print("Token is NOT valid. Fetching new tokens...")
         get_new_tokens()
     
+    c = create_db_connection(DATABASE_LOCATION)
+
     w = fetch_all_weight_logs()
-    print(w)
+    for log in w:
+        save_weight_log(log)
