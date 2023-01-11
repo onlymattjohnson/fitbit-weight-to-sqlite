@@ -1,5 +1,5 @@
 from base64 import b64encode
-from datetime import date
+from datetime import date, datetime
 from dotenv import load_dotenv
 import json, os, requests, sqlite3
 
@@ -10,6 +10,13 @@ CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 REFRESH_TOKEN = os.getenv("REFRESH_TOKEN")
 DATABASE_LOCATION = os.getenv("DATABASE_LOCATION")
+
+def log_output(t):
+    """
+    Produces a log output to stdout
+    """
+    d = datetime.now()
+    print(f'{d} : {t}')
 
 def check_if_row_exists(conn, weight_log):
     """
@@ -22,13 +29,11 @@ def check_if_row_exists(conn, weight_log):
             and weight = {weight_log['weight']} 
     '''
     cur = conn.cursor()
-    print(f'Checking if row for {weight_log["date"]} already exists...')
-
     cur.execute(sql)
 
     result = len(cur.fetchall()) >= 1
     if result:
-        print('The row already exists.')
+        log_output(f'Data for {weight_log["date"]} already exists, skipping insert.')
 
     return result
 
@@ -42,7 +47,7 @@ def create_db_connection(db):
     try:
         conn = sqlite3.connect(db)
     except Error as e:
-        print(e)
+        log_output(e)
 
     return conn
 
@@ -74,11 +79,11 @@ def get_new_tokens():
 
     json_response = r.json()
     if 'errors' in json_response:
-        print('Could not connect.')
+        log_output('Could not connect to Fitbit server.')
         for e in json_response['errors']:
             error_type = e['errorType']
             error_message = e['message']
-            print(f'Error Type: {error_type}, Message: {error_message}')
+            log_output(f'Error Type: {error_type}, Message: {error_message}')
     else:
         t1 = json_response['access_token']
         t2 = json_response['refresh_token']
@@ -129,6 +134,8 @@ def save_tokens(t1, t2):
     with open('.env', 'w') as file:
         file.writelines(data)
 
+    log_output('Saved new access tokens to .env file')
+
 def save_weight_log(weight_log, conn):
     """
     Save all weight logs into database
@@ -160,9 +167,9 @@ def save_weight_log(weight_log, conn):
 if __name__ == '__main__':
     # check if existing token is valid
     if is_token_valid(ACCESS_TOKEN):
-        print("Token is valid. Let's goooooooooo")
+        log_output("Fitbit Authentication Token is valid.")
     else:
-        print("Token is NOT valid. Fetching new tokens...")
+        log_output("Fitbit Authentication Token is NOT valid. Fetching new tokens...")
         get_new_tokens()
     
     c = create_db_connection(DATABASE_LOCATION)
@@ -171,4 +178,4 @@ if __name__ == '__main__':
     for log in w:
         r = save_weight_log(log, c)
         if r != -1:
-            print(f'Inserted new row {r}')
+            print(f'Inserted new row for {log["date"]} - ROWID {r}')
