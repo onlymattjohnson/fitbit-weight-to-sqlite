@@ -48,6 +48,7 @@ def create_db_connection(db):
         conn = sqlite3.connect(db)
     except Error as e:
         log_output(e)
+        sys.exit()
 
     return conn
 
