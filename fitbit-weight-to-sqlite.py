@@ -127,7 +127,9 @@ def is_token_valid(token):
         return r['success']
 
 def save_tokens(t1, t2):
-    with open('.env', 'r') as file:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    
+    with open(f'{dir_path}/.env', 'r') as file:
         data = file.readlines()
     data[2] = f'ACCESS_TOKEN={t1}\n'
     data[3] = f'REFRESH_TOKEN={t2}\n'
