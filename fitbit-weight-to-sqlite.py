@@ -134,7 +134,7 @@ def save_tokens(t1, t2):
     data[2] = f'ACCESS_TOKEN={t1}\n'
     data[3] = f'REFRESH_TOKEN={t2}\n'
 
-    with open('.env', 'w') as file:
+    with open(f'{dir_path}/.env', 'w') as file:
         file.writelines(data)
 
     log_output('Saved new access tokens to .env file')
